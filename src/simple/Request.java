@@ -18,28 +18,31 @@ public class Request {
      */
     public void parse() {
         StringBuilder request = new StringBuilder();
-        byte[] buffer = new byte[1024];
+//        byte[] buffer = new byte[1024];
+//        要使用大一点的缓冲区
+        byte[] buffer = new byte[2048];
         try {
             int j = -1;
-            while (( j = input.read(buffer)) != -1) {
+            j = input.read(buffer);
+//            http请求中不包含结束符号，如果使用while循环的话循环不会退出
+//            while (( j = input.read(buffer)) != -1) {
                 for (int i = 0; i <j; i++) {
                     request.append((char) buffer[i]);
                 }
-            }
+                System.out.println(request);
+//            }
         } catch (IOException e) {
             e.printStackTrace();
         }
-        System.out.println(request.toString());
-        uri = request.toString();
+//        System.out.println(request.toString());
+        uri = parseUri(request.toString());
     }
 
     private String parseUri(String request) {
 //        根据http协议，第一个空格和第二个空格之间就是请求的uri
         int begin = request.indexOf(' ');
         if (begin != -1) {
-            System.out.println("begin:" + begin);
             int end = request.indexOf(' ', begin + 1);
-            System.out.println("end:" + end);
             if (begin < end) {
                 return request.substring(begin + 1, end);
             }

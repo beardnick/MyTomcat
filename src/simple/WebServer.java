@@ -6,8 +6,10 @@ import java.io.OutputStream;
 import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.nio.channels.SocketChannel;
 
 public class WebServer {
+
 
     private boolean shutdown = false;
     private String WEB_ROOT = "/webroot";
@@ -51,19 +53,44 @@ public class WebServer {
         }
         while (!shutdown) {
                 try {
-                Socket socket = serverSocket.accept();
-                InputStream input = socket.getInputStream();
-                OutputStream output = socket.getOutputStream();
-                Request request = new Request(input);
-                request.parse();
-                Response response = new Response(this, output, request);
-                response.sendResponse();
-                socket.close();
+                WebServer context = this;
+                multiThread(serverSocket.accept(), context);
+//                singleThread(serverSocket.accept(), context);
                 } catch (IOException e) {
                     e.printStackTrace();
                     continue;
                 }
             }
+    }
+
+    private void multiThread(Socket socket, WebServer context) {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    InputStream input = socket.getInputStream();
+                    OutputStream output = socket.getOutputStream();
+                    Request request = new Request(input);
+                    request.parse();
+                    Response response = new Response(context , output, request);
+                    response.sendResponse();
+                    socket.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }).start();
+
+    }
+
+    private void singleThread(Socket socket, WebServer context) throws IOException {
+        InputStream input = socket.getInputStream();
+        OutputStream output = socket.getOutputStream();
+        Request request = new Request(input);
+        request.parse();
+        Response response = new Response(context , output, request);
+        response.sendResponse();
+        socket.close();
     }
 
     public void shutdown() {

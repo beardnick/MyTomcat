@@ -7,6 +7,9 @@ import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.channels.SocketChannel;
+import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class WebServer {
 
@@ -54,13 +57,35 @@ public class WebServer {
         while (!shutdown) {
                 try {
                 WebServer context = this;
-                multiThread(serverSocket.accept(), context);
-//                singleThread(serverSocket.accept(), context);
+//                multiThread(serverSocket.accept(), context);
+                singleThread(serverSocket.accept(), context);
+//                    threadPool(serverSocket.accept(), context);
                 } catch (IOException e) {
                     e.printStackTrace();
                     continue;
                 }
             }
+    }
+
+    private  final ExecutorService executor = Executors.newFixedThreadPool(100);
+
+    private void threadPool(Socket socket, WebServer context) {
+        executor.execute(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    InputStream input = socket.getInputStream();
+                    OutputStream output = socket.getOutputStream();
+                    Request request = new Request(input);
+                    request.parse();
+                    Response response = new Response(context , output, request);
+                    response.sendResponse();
+                    socket.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
     }
 
     private void multiThread(Socket socket, WebServer context) {
@@ -80,7 +105,6 @@ public class WebServer {
                 }
             }
         }).start();
-
     }
 
     private void singleThread(Socket socket, WebServer context) throws IOException {
